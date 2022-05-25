@@ -1,0 +1,536 @@
+%{
+	#include <iostream>
+	#include <stdlib.h>
+	#include <string>
+	#include "hw3_output.hpp"
+	#include "symtab.hpp"
+	#include "node.hpp"
+
+	using namespace std;
+	using namespace output;
+
+	extern int yylex();
+	void yyerror(const char * message);
+	extern int yylineno;
+
+	#define YYSTYPE Node*
+
+	symbolTable ourSymtab;
+	int while_loop = 0;
+
+	void checkIfBool(myExp* exp1, myExp* exp2)
+	{
+		if(exp1->type == "BOOL" && exp2->type == "BOOL")
+		{
+			return;
+		}
+		delete exp1;
+		delete exp2;
+		errorMismatch(yylineno);
+		exit(1);
+	}
+
+	void checkIfNumeric(myExp* exp1, myExp* exp2)
+	{
+		if((exp1->type == "INT" || exp1->type == "BYTE") && (exp2->type == "INT" || exp2->type == "BYTE"))
+		{
+			return;
+		}
+		delete exp1;
+		delete exp2;
+		errorMismatch(yylineno);
+		exit(1);
+	}
+
+	bool typeMatch(string lexp, string rexp)
+	{
+		if(rexp != lexp)
+		{
+			if(lexp != "INT" || rexp != "BYTE")
+			{
+				return false;
+			}
+		}
+		return true;
+	}
+	
+%}
+
+%token ID
+%token LBRACE 
+%token RBRACE
+%token VOID
+%token COMMA
+%token SC
+%token AUTO
+%token RETURN
+%nonassoc IF
+%token WHILE
+%token BREAK
+%token CONTINUE
+%token INT
+%token BYTE
+%token BOOL
+%token NUM
+%token B
+%token STRING
+%token TRUE
+%token FALSE
+%right ASSIGN
+%left OR
+%left AND
+%left RELOP
+%left BINOP
+%right NOT
+%left LPAREN
+%left RPAREN
+%nonassoc ELSE
+
+
+%%
+
+program	:	Funcs {}
+		;
+
+Funcs	:	/*epsilon*/ {}
+		|	FuncDecl Funcs {}
+		;
+
+FuncDecl:	RetType ID LPAREN Formals RPAREN
+			{
+				string id_name = ((myVariable*)$2)->var;
+				string type = ((myType*)$1)->type;
+				delete $1;
+				delete $2;
+				vector<string> args_type;
+				vector<string> args_name;
+				myFormal* formals = (myFormal*)$4;
+				while(formals)
+				{
+					args_type.push_back(formals->type);
+					args_name.push_back(formals->name);
+					myFormal* cur_formal = formals;
+					formals = (myFormal*)(formals->next);
+					delete cur_formal;
+				}
+				if(!(ourSymtab.pushFunction(id_name, type, args_type)))
+				{
+					errorDef(yylineno, id_name);
+					exit(1);
+				}
+				ourSymtab.makeScope();
+				string return_args = ourSymtab.pushArgs(args_name, args_type);
+				if(return_args != "")
+				{
+					errorDef(yylineno, return_args);
+					exit(1);
+				}
+			}
+			LBRACE Statements RBRACE
+			{
+				ourSymtab.popScope();
+			}
+		;
+
+RetType	:	Type
+			{
+				$$ = $1;
+			}
+		|	VOID
+			{
+				$$ = new myType("VOID");
+		
+			}
+
+		;
+
+Formals	:	/*epsilon*/
+			{
+				$$ = nullptr;
+			}
+		|	FormalsList
+			{
+				$$ = $1;
+			}
+		;
+
+FormalsList	:	FormalDecl
+				{
+					$$ = $1;
+				}
+			|	FormalDecl COMMA FormalsList
+				{
+					$$ = $1;
+					$$->next = $3;
+				}
+			;
+
+FormalDecl	:	Type ID
+				{
+					string id_name = ((myVariable*)$2)->var;
+					string type = ((myType*)$1)->type;
+					delete $1;
+					delete $2;
+
+					$$ = new myFormal(id_name, type);
+									
+				}
+			;
+
+Statements	:	Statement
+				{
+					$$ = $1;
+				}
+			|	Statements Statement {}
+			;
+
+Statement	:	LBRACE M Statements RBRACE
+				{
+					ourSymtab.popScope();
+				}
+			|	Type ID SC
+				{
+					string id_name = ((myVariable*)$2)->var;
+					string type = ((myType*)$1)->type;
+					delete $1;
+					delete $2;
+					if(!ourSymtab.pushSymbol(id_name, type))
+					{
+						errorDef(yylineno, id_name);
+						exit(1);
+					}
+				}
+			|	Type ID ASSIGN Exp SC
+				{
+					string id_name = ((myVariable*)$2)->var;
+					string exp_type = ((myExp*)$4)->type;
+					string type = ((myType*)$1)->type;
+					delete $1;
+					delete $2;
+					delete $4;
+					if(!typeMatch(type, exp_type))
+					{
+						errorMismatch(yylineno);
+						exit(1);
+					}
+					if(!ourSymtab.pushSymbol(id_name, type))
+					{
+						errorDef(yylineno, id_name);
+						exit(1);
+					}
+				}
+			|	AUTO ID ASSIGN Exp SC
+				{
+					string id_name = ((myVariable*)$2)->var;
+					string exp_type = ((myExp*)$4)->type;
+					delete $2;
+					delete $4;
+					if(exp_type != "BOOL" && exp_type != "INT" && exp_type != "BYTE")
+					{
+						errorMismatch(yylineno);
+						exit(1);
+					}
+					if(!ourSymtab.pushSymbol(id_name, exp_type))
+					{
+						errorDef(yylineno, id_name);
+						exit(1);
+					}
+				}
+			|	ID ASSIGN Exp SC
+				{
+					string id_name = ((myVariable*)$1)->var;
+					string exp_type = ((myExp*)$3)->type;
+					delete $1;
+					delete $3;
+					symbol* id = ourSymtab.existInTable(id_name);
+					if(!id)
+					{
+						errorUndef(yylineno, id_name);
+						exit(1);
+					}
+					if(!typeMatch(id->type, exp_type))
+					{
+						errorMismatch(yylineno);
+						exit(1);
+					}
+				}
+			|	Call SC
+				{
+					$$ = $1;
+				}
+			|	RETURN SC
+				{
+					if(ourSymtab.func_return_type != "VOID")
+					{
+						errorMismatch(yylineno);
+						exit(1);
+					}
+				}
+			|	RETURN Exp SC
+				{
+					string exp_type = ((myExp*)$2)->type;
+					delete $2;
+					if(ourSymtab.func_return_type == "VOID" || !typeMatch(ourSymtab.func_return_type, exp_type))
+					{
+						errorMismatch(yylineno);
+						exit(1);
+					}
+				}
+			|	IF BoolExp M Statement %prec IF P {}
+			|	IF BoolExp M Statement P ELSE M Statement
+				{
+					ourSymtab.popScope(); 
+				}
+			|	WHILE {while_loop++;} BoolExp M Statement
+				{
+					ourSymtab.popScope(); 
+					while_loop--;
+				}
+			|	BREAK SC
+				{
+					if(while_loop == 0)
+					{
+						errorUnexpectedBreak(yylineno);
+						exit(1);
+					}
+				}
+			|	CONTINUE SC
+				{
+					if(while_loop == 0) 
+					{
+						errorUnexpectedContinue(yylineno);
+						exit(1);
+					}
+				}
+			;
+
+P		:	/*epsilon*/
+			{
+				ourSymtab.popScope(); 
+			}
+			;
+
+BoolExp	:	LPAREN Exp RPAREN
+			{
+				if(((myExp*)$2)->type != "BOOL")
+				{
+					delete $2;
+					errorMismatch(yylineno);
+					exit(1);
+				}
+				delete $2;
+			}
+			;
+
+M		:	/*epsilon*/
+			{
+				ourSymtab.makeScope();
+			}
+			;
+
+Call	:	ID LPAREN ExpList RPAREN
+			{
+				function* cur_func = ourSymtab.checkIfValidIdFunc((myVariable*)$1);
+				delete $1;
+
+				if(!cur_func)
+				{
+					errorUndefFunc(yylineno, ((myVariable*)$1)->var);
+					exit(1);
+				}
+				vector<string> sent_args;
+				myExp* exp = (myExp*)$3;
+				while(exp)
+				{
+					sent_args.push_back(exp->type);
+					myExp* cur_exp = exp;
+					exp = (myExp*)exp->next;
+					delete cur_exp;
+				}
+				int args_size = (cur_func->args).size();
+				if(sent_args.size() != args_size)
+				{
+					errorPrototypeMismatch(yylineno, ((myVariable*)$1)->var, cur_func->args);
+					exit(1);
+				}
+				for (int i = 0; i < args_size; i++)
+				{
+					if(!typeMatch(cur_func->args[i], sent_args[i]))
+					{
+						errorPrototypeMismatch(yylineno, ((myVariable*)$1)->var, cur_func->args);
+						exit(1);
+					}
+				}
+				string func_type = cur_func->type;
+				$$ = new myExp(func_type);
+			}
+		|	ID LPAREN RPAREN
+			{
+				function* cur_func = ourSymtab.checkIfValidIdFunc((myVariable*)$1);
+				delete $1;
+
+				if(!cur_func)
+				{
+					errorUndefFunc(yylineno, ((myVariable*)$1)->var);
+					exit(1);
+				}
+				if((cur_func->args).size() != 0)
+				{
+					errorPrototypeMismatch(yylineno, ((myVariable*)$1)->var, cur_func->args);
+					exit(1);
+				}
+				string func_type = cur_func->type;
+				$$ = new myExp(func_type);
+			}
+		;
+
+ExpList	:	Exp
+			{
+				$$ = $1;
+			}
+		|	Exp COMMA ExpList
+			{
+				$$ = $1;
+				$$->next = $3;
+			}
+		;
+
+Type	:	INT
+			{
+				$$ = new myType("INT");
+			}
+		|	BYTE
+			{
+				$$ = new myType("BYTE");
+			}
+		|	BOOL
+			{
+				$$ = new myType("BOOL");
+			}
+		;
+
+Exp	:	LPAREN Exp RPAREN
+		{
+			$$ = $2;
+		}
+	|	Exp BINOP Exp
+		{
+			checkIfNumeric((myExp*)$1, (myExp*)$3);
+			if(((myExp*)$1)->type == "BYTE" &&  ((myExp*)$3)->type == "BYTE")
+			{
+				$$ = new myExp("BYTE");
+			}
+			else
+			{
+				$$ = new myExp("INT");
+			}
+			delete $1;
+			delete $3;
+		}
+	|	ID
+		{
+			symbol* cur_symbol = ourSymtab.checkIfValidId((myVariable*)$1);
+			string cur_symbol_name = ((myVariable*)$1)->var;
+			delete $1;
+			if(!cur_symbol)
+			{
+				errorUndef(yylineno, cur_symbol_name);
+				exit(1);
+			}
+			string symbol_type = cur_symbol->type;
+			$$ = new myExp(symbol_type);
+		}
+	|	Call
+		{
+			$$ = $1;
+		}
+	|	NUM
+		{
+			delete $1;
+			$$ = new myExp("INT");
+		}
+	|	NUM B
+		{
+			int num_val = ((myNumber*)$1)->num_value;
+			delete $1;
+			if(num_val > 255)
+			{
+				errorByteTooLarge(yylineno, to_string(num_val));
+				exit(1);
+			}
+			$$ = new myExp("BYTE");
+		}
+	|	STRING
+		{
+			$$ = new myExp("STRING");
+		}
+	|	TRUE
+		{
+			$$ = new myExp("BOOL");
+		}
+	|	FALSE
+		{
+			$$ = new myExp("BOOL");
+		}
+	|	NOT Exp
+		{
+			if(((myExp*)$2)->type != "BOOL")
+			{
+				delete $2;
+				errorMismatch(yylineno);
+				exit(1);
+			}
+			$$ = $2;
+		}
+	|	Exp AND Exp
+		{
+			checkIfBool((myExp*)$1, (myExp*)$3);
+			delete $1;
+			delete $3;
+			$$ = new myExp("BOOL"); 
+		}
+	|	Exp OR Exp
+		{
+			checkIfBool((myExp*)$1, (myExp*)$3);
+			delete $1;
+			delete $3;
+			$$ = new myExp("BOOL"); 
+		}
+	|	Exp RELOP Exp
+		{
+			checkIfNumeric((myExp*)$1, (myExp*)$3);
+			delete $1;
+			delete $3;
+			// todo to check if relop can be between int and byte and if needed to fix the checkIfNumeric func TODO
+			$$ = new myExp("BOOL");
+		}
+	|	LPAREN Type RPAREN Exp
+		{
+			checkIfNumeric((myExp*)$2, (myExp*)$4);
+			$$ = new myExp(((myType*)$2)->type);
+			delete $2;
+			delete $4;
+		}
+	;
+
+
+
+%%
+
+int main()
+{
+	yyparse();
+	if(!ourSymtab.is_main)
+	{
+		errorMainMissing();
+		exit(1);
+	}
+	ourSymtab.popScope();
+	return 0;
+}
+
+void yyerror(const char * message)
+{
+	output::errorSyn(yylineno); 
+	exit(0);
+}
