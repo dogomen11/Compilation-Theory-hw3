@@ -25,40 +25,39 @@
 
 %}
 
+
 %token VOID
 %token INT
-%nonassoc BYTE
-%nonassoc B
-%nonassoc BOOL
-%left OR
-%left AND
-%right NOT
-%nonassoc TRUE
-%nonassoc FALSE
-%nonassoc RETURN
-%nonassoc IF
-%nonassoc WHILE
-%nonassoc BREAK
-%nonassoc CONTINUE
-%nonassoc SWITCH
-%nonassoc CASE
-%nonassoc DEFAULT
-%nonassoc COLON
-%nonassoc SC
-%nonassoc COMMA
-%left LPAREN
-%left RPAREN
-%left LBRACE
-%left RBRACE
+%token BYTE
+%token B
+%token BOOL
+%token AUTO
+%token TRUE
+%token FALSE
+%token RETURN
+%token IF
+%token WHILE
+%token BREAK
+%token CONTINUE
+%token SC
+%token COMMA
+%token LPAREN
+%token LBRACE
+%token RBRACE
+%token ID
+%token NUM
+%token STRING
+
 %right ASSIGN
 %left EQUALITY
+%left OR
+%left AND
 %nonassoc RELOP
-%left BINOP_PM
-%left BINOP_MD
-%token ID
-%nonassoc NUM
-%nonassoc STRING
-%right ELSE
+%left BINOP_ADDATIVE
+%left BINOP_MULTIPLY
+%right NOT
+%left RPAREN
+%nonassoc ELSE
 
 %%
 
@@ -92,20 +91,27 @@ Statement:      LBRACE {symbolTable.openNewScope(); }
                         RBRACE {symbolTable.closeCurrentScope();}           {output::printProductionRule(14);}
                 | Type ID SC                                                {symbolTable.addSymbol(castType($1), castID($2)) ; output::printProductionRule(15);}
                 | Type ID ASSIGN Exp SC                                     {symbolTable.addSymbol(castType($1), castID($2)); symbolTable.assign(castID($2), castExp($4)); output::printProductionRule(16);}
-                | ID ASSIGN Exp SC                                          {symbolTable.getExpByID(castID($1)) = castExp($3) ; output::printProductionRule(17);}
-                | Call SC                                                   {output::printProductionRule(18);}
-                | RETURN SC                                                 {symbolTable.checkReturnType() ; output::printProductionRule(19);}
-                | RETURN Exp SC                                             {symbolTable.checkReturnType(castExp($2)) ; output::printProductionRule(20);}
+
+
+                
+				| AUTO ID ASSIGN Exp SC                                     
+                {
+                    symbolTable.addSymbol(castExp($4).t, castID($2)); 
+                    symbolTable.assign(castID($2), castExp($4)); 
+                    output::printProductionRule(17);
+                }
+
+
+                | ID ASSIGN Exp SC                                          {symbolTable.getExpByID(castID($1)) = castExp($3) ; output::printProductionRule(18);}
+                | Call SC                                                   {output::printProductionRule(19);}
+                | RETURN SC                                                 {symbolTable.checkReturnType() ; output::printProductionRule(20);}
+                | RETURN Exp SC                                             {symbolTable.checkReturnType(castExp($2)) ; output::printProductionRule(21);}
                 | IF LPAREN BOOLEXP STARTSCOPE RPAREN Statement {symbolTable.closeCurrentScope();}
                 | IF LPAREN BOOLEXP STARTSCOPE RPAREN Statement ELSE {symbolTable.closeCurrentScope();} STARTSCOPE Statement {symbolTable.closeCurrentScope();}
                 | WHILE LPAREN BOOLEXP RPAREN {symbolTable.openLoopScope();} Statement {symbolTable.closeCurrentScope();}
                 | BREAK SC                                                  {symbolTable.triggerBreak(); output::printProductionRule(24);}
                 | CONTINUE SC                                               {symbolTable.triggerContinue(); output::printProductionRule(25);}
-                | SWITCH LPAREN Exp RPAREN
-                            {symbolTable.openSwitchScope(castExp($3));}
-                            LBRACE CaseList RBRACE
-                            {symbolTable.closeCurrentScope();}
-                                                                            {output::printProductionRule(26);}
+                
 ;
 
 BOOLEXP:        Exp                                                         {if (castExp($1).t != Type(E_bool)) {output::errorMismatch(yylineno); exit(1);} $$ = $1;}
@@ -123,13 +129,13 @@ Type :          INT                                                         {$$ 
                 | BOOL                                                      {$$ = new Type(E_bool) ;output::printProductionRule(33);}
 ;
 Exp:            LPAREN Exp RPAREN                                           {$$ = $2 ; output::printProductionRule(34);}
-                | Exp BINOP_MD Exp                                          {
+                | Exp BINOP_MULTIPLY Exp                                          {
                                                                                 if(!castExp($1).isNumerical() || !castExp($3).isNumerical()){
                                                                                         output::errorMismatch(yylineno);
                                                                                         exit(12);
                                                                                     };
                                                                                 $$ = new Exp_t(Type(castExp($1).getDualType(castExp($3))));delete $1; delete $3; output::printProductionRule(35);}
-                | Exp BINOP_PM Exp                                          {
+                | Exp BINOP_ADDATIVE Exp                                          {
                                                                                 if(!castExp($1).isNumerical() || !castExp($3).isNumerical()){
                                                                                     output::errorMismatch(yylineno);
                                                                                     exit(12);
@@ -163,13 +169,18 @@ Exp:            LPAREN Exp RPAREN                                           {$$ 
                                                                                 delete $1;
                                                                                 delete $3;
                                                                             };
-;
-CaseList:       CaseDecl CaseList                                           {output::printProductionRule(48);}
-                | CaseDecl                                                  {output::printProductionRule(49);}
-                | DEFAULT COLON Statements                                  {output::printProductionRule(50);}
-;
-CaseDecl:       CASE NUM COLON  {symbolTable.triggerCase();}
-                            Statements                                      {output::printProductionRule(51);}
+				| LPAREN Type RPAREN Exp                                    {	 if(!(castExp($2).isString() && castExp($4).isString())){
+																					if(!castExp($2).isNumerical() || !castExp($4).isNumerical()){
+																						output::errorMismatch(yylineno);
+                                                                                        exit(12);
+																					}   
+                                                                                }
+                                                                                    $$ = new Exp_t(castType($2));
+                                                                                    delete $2;
+                                                                                    delete $4;
+											
+																					output::printProductionRule(47);}															
+																			
 ;
 
 %%

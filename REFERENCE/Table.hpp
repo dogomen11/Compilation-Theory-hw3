@@ -64,14 +64,7 @@ public:
     void openLoopScope(){
         openNewScope(LOOP_SCOPE);
     }
-    void openSwitchScope(Exp_t e) {
-        if (e.t != E_byte && e.t != E_int) {
-            output::errorMismatch(yylineno);
-            exit(1);
-        }
-
-        openNewScope( SWITCH_SCOPE);
-    }
+    
     void openFuncScope(IDtype id, SymList args, Type retType) {
         reverse(args.symList.begin(),args.symList.end());
         output::printLog("Flag " + id.id);
@@ -113,7 +106,7 @@ public:
     }
     void triggerBreak(){
         for(ScopeList::iterator i = scopeList.begin(); i != scopeList.end(); i++){
-            if ((*i).type == LOOP_SCOPE || (*i).type == SWITCH_SCOPE){
+            if ((*i).type == LOOP_SCOPE ){ 
                 cases = 0;
                 return;
             }

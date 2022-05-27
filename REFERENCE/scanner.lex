@@ -40,10 +40,6 @@ else                                                return ELSE;
 while                                               return WHILE;
 break                                               return BREAK;
 continue                                            return CONTINUE;
-switch                                              return SWITCH;
-case                                                return CASE;
-default                                             return DEFAULT;
-:                                                   return COLON;
 ;                                                   return SC;
 ,                                                   return COMMA;
 \(                                                  return LPAREN;
@@ -53,8 +49,8 @@ default                                             return DEFAULT;
 =                                                   return ASSIGN;
 "<"|">"|"<="|">="                                   {return RELOP;}
 "=="|"!="                                           return EQUALITY;
-"*"|"/"                                             {return BINOP_MD;}
-"+"|"-"                                             {return BINOP_PM;}
+"*"|"/"                                             {return BINOP_MULTIPLY;}
+"+"|"-"                                             {return BINOP_ADDATIVE;}
 [a-zA-Z][a-zA-Z0-9]*                                {yylval = new IDtype(string(yytext));  return ID;}
 {noZeroDigit}{digit}*                               {yylval = new Num(stoi(yytext)); return NUM;}
 0                                                   {yylval = new Num(0); return NUM;}

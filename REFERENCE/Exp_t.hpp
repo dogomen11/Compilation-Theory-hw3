@@ -26,6 +26,10 @@ public:
     bool isNumerical() const{
         return t == E_int || t == E_byte;
     }
+	bool isString() const{
+		return t == E_string;
+	}
+	
     Type getDualType(const Exp_t& e) const {
         if (t == E_byte && e.t == E_byte)
             return E_byte;
@@ -61,46 +65,7 @@ public:
         }
         return (*this);
     };
-    /*
-    Exp_t operator+(const Exp_t& e) const {
-        if(!isNumerical() || !e.isNumerical()){
-            exit(621);
-        }
-
-        return Exp_t(getDualType(e)) ;
-    }
-    Exp_t operator-(const Exp_t& e) const {
-        if(!isNumerical() || !e.isNumerical()){
-        }
-
-        return Exp_t(getDualType(e)) ;
-    }
-    */
-    /*
-    bool operator==(const Exp_t& e){
-        if ( isNumerical() && e.isNumerical()){
-            return i == e.i;
-        }
-        if (t == E_bool && e.t == E_bool){
-            return i == e.i;
-        }
-        if ( t == E_string && e.t == E_string){
-            return s == e.s;
-        }
-        return false;
-    }
-    bool operator<=(const Exp_t& e){
-        if (!isNumerical() || !e.isNumerical()){
-        }
-
-        return t <= e.t;
-    }
-    bool operator<(const Exp_t& e){
-        if (!isNumerical() || !e.isNumerical()){
-        }
-
-        return t < e.t;
-    } */
+    
 };
 
 
