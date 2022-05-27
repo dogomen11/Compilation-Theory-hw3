@@ -2,12 +2,12 @@
 #define HW3_RELOP_API
 
 #include "hw3_enum_list.hpp"
-#include "Exp_t.hpp"
+#include "hw3_master.hpp"
 
 class RelopAPI
 {
     public:
-        RELOP_ENUM opperator;
+        RELOPS opperator;
         
         RelopAPI() : opperator(E_L) {};
 

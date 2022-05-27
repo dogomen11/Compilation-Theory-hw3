@@ -29,6 +29,7 @@ int                                                 {return INT;}
 byte                                                {return BYTE;}
 b                                                   {return B;}
 bool                                                {return BOOL;}
+AUTO                                                {return AUTO;}
 and                                                 {return AND;}
 or                                                  {return OR;}
 not                                                 {return NOT;}

@@ -21,15 +21,17 @@ class Expression : public Master
             if ( (type == E_byte) && (i >= (1 << 8)) )
             {
                 output::errorByteTooLarge(yylineno, std::to_string(i));
-                exit(5456); 
+                exit(1); 
             }
         }
 
         Expression(const Expression& exp_to_copy) : type(exp_to_copy.type) {}
     
-        bool isBool() const { return type == E_bool; }
+        bool isBool()       const { return type == E_bool;                      }
 
-        bool isNumerical() const {  return type == E_int || type == E_byte; }
+        bool isNumerical()  const {  return type == E_int || type == E_byte;    }
+
+        bool isString()     const { return type == E_string;                       }
 
         Type getDualType(const Expression& exp) const 
         {

@@ -99,7 +99,6 @@ Statement:      LBRACE {symbolTable.openNewScope(); }
 
 				| AUTO ID ASSIGN Exp SC                                     
                 {
-                    output::printLog("AUTO ENTERED@@@@@@@@@@@@@")
                     symbolTable.addSymbol(castExp($4).t, castID($2)); 
                     symbolTable.assign(castID($2), castExp($4)); 
                     delete $2;

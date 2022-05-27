@@ -1,22 +1,30 @@
 %{
-    #include "hw3_symbol_table.hpp"
-    #include "hw3_enum_list.hpp"
-    #include "hw3_expression.hpp"
-    #include "hw3_relop_api.hpp"
-    #include "hw3_master.hpp"
-    #include "hw3_output.hpp"
     #include <iostream>
-    extern int yylex();
-    extern int yylineno;
+    #include <string>
+    #include "hw3_output.hpp"
+    #include "hw3_enum_list.hpp"
+    #include "hw3_relop_api.hpp"
+    #include "hw3_expression.hpp"
+    #include "hw3_symbol_table.hpp"
+    #include "hw3_master.hpp"
+    #define castType(toCast) (*(static_cast<Type*>(toCast)))
+    #define castID(toCast) (*(static_cast<IDtype*>(toCast)))
+    #define castSymList(toCast) (*(static_cast<SymbolsList*>(toCast)))
+    #define castSymbol(toCast) (*(static_cast<Symbol*>(toCast)))
+    #define castExp(toCast) (*(static_cast<Expression*>(toCast)))
+    #define castExpList(toCast) (*(static_cast<ExpList*>(toCast)))
+    #define castNum(toCast) (*(static_cast<Num*>(toCast)))
+    
+
+    int yylex();
     void output::printProductionRule(int ruleno);
     void output::errorLex(int lineno);
     void output::errorSyn(int lineno);
-    void yyerror(const char* message);
-	int main();
-    using namespace std;
-	using namespace output;
-%}
+    void yyerror(const char*);
 
+    SymbolTable symbolTable = SymbolTable();
+
+%}
 
 
 %token VOID
@@ -42,6 +50,7 @@
 %token STRING
 
 %right ASSIGN
+%left EQUALITY
 %left OR
 %left AND
 %nonassoc RELOP
@@ -51,87 +60,161 @@
 %left RPAREN
 %nonassoc ELSE
 
-
 %%
 
 Program:        Funcs                                                       {output::printProductionRule(1);}
 ;
-Funcs:          /*epsilon*/ 			                                                {output::printProductionRule(2);}
+Funcs:          /*epsilon*/                                                 {output::printProductionRule(2);}
                 | FuncDecl Funcs                                            {output::printProductionRule(3);}
 ;
-FuncDecl:       RetType ID LPAREN Formals RPAREN LBRACE Statements RBRACE   {output::printProductionRule(4);}
+FuncDecl:       RetType ID LPAREN Formals RPAREN LBRACE
+                                    {symbolTable.openFuncScope(castID($2), castSymList($4), castType($1));}
+                                    Statements
+                                    {output::printLog("Start: Close func scope") ; symbolTable.closeCurrentScope(); output::printLog("Done: Close func scope") ;}
+                                    RBRACE                                  {output::printProductionRule(4);}
 ;
-RetType:        Type                                                        {output::printProductionRule(5);}
-                |VOID                                                       {output::printProductionRule(6);}
+RetType:        Type                                                        {$$ = $1; output::printProductionRule(5);}
+                | VOID                                                      {$$ = new Type(E_void); output::printProductionRule(6);}
 ;
-Formals:        /*epsilon*/                                                				{output::printProductionRule(7);}
-                |FormalsList                                                {output::printProductionRule(8);}
+Formals:        /*epsilon*/                                                 {$$ = new SymbolsList() ; output::printProductionRule(7);}
+                | FormalsList                                               {$$ = $1 ; output::printProductionRule(8);}
 ;
-FormalsList:    FormalDecl                                                  {output::printProductionRule(9);}
-                |FormalDecl COMMA FormalsList                               {output::printProductionRule(10);}
+FormalsList:    FormalDecl                                                  {output::printProductionRule(9); $$ = new SymbolsList() ; castSymList($$).insert(castSymbol($1));}
+                |FormalDecl COMMA FormalsList                               {output::printProductionRule(10); $$ = $3 ; castSymList($$).insert(castSymbol($1)); }
 ;
-FormalDecl:     Type ID                                                     {output::printProductionRule(11);}
+FormalDecl:     Type ID                                                     {$$ = new Symbol(castID($2), castType($1)) ; delete $1; delete $2;output::printProductionRule(11);}
 ;
 Statements:     Statement                                                   {output::printProductionRule(12);}
                 |Statements Statement                                       {output::printProductionRule(13);}
 ;
-Statement:      LBRACE Statements RBRACE                                    {output::printProductionRule(14);}
-                | Type ID SC                                                {output::printProductionRule(15);}
-                | Type ID ASSIGN Exp SC                                     {output::printProductionRule(16);}
-                | AUTO ID ASSIGN Exp SC                                     {output::printProductionRule(17);}
-                | ID ASSIGN Exp SC                                          {output::printProductionRule(18);}
+Statement:      LBRACE {symbolTable.openNewScope(); }
+                        Statements
+                        RBRACE {symbolTable.closeCurrentScope();}           {output::printProductionRule(14);}
+                | Type ID SC                                                {symbolTable.addSymbol(castType($1), castID($2)) ; output::printProductionRule(15);}
+                | Type ID ASSIGN Exp SC                                     {symbolTable.addSymbol(castType($1), castID($2)); symbolTable.assign(castID($2), castExp($4)); output::printProductionRule(16);}
+
+
+
+
+
+
+				| AUTO ID ASSIGN Exp SC                                     
+                {
+                    symbolTable.addSymbol(castExp($4).type, castID($2)); 
+                    symbolTable.assign(castID($2), castExp($4)); 
+                    delete $2;
+                    delete $4;
+                    output::printProductionRule(17);
+                }
+
+
+
+
+
+                | ID ASSIGN Exp SC                                          {symbolTable.getExpByID(castID($1)) = castExp($3) ; output::printProductionRule(18);}
                 | Call SC                                                   {output::printProductionRule(19);}
-                | RETURN SC                                                 {output::printProductionRule(20);}
-                | RETURN Exp SC                                             {output::printProductionRule(21);}
-                | IF LPAREN Exp RPAREN Statement                            {output::printProductionRule(22);}
-                | IF LPAREN Exp RPAREN Statement ELSE Statement             {output::printProductionRule(23);}
-                | WHILE LPAREN Exp RPAREN Statement                         {output::printProductionRule(24);}
-                | BREAK SC                                                  {output::printProductionRule(25);}
-                | CONTINUE SC                                               {output::printProductionRule(26);}
+                | RETURN SC                                                 {symbolTable.checkReturnType() ; output::printProductionRule(20);}
+                | RETURN Exp SC                                             {symbolTable.checkReturnType(castExp($2)) ; output::printProductionRule(21);}
+                | IF LPAREN BOOLEXP STARTSCOPE RPAREN Statement             {symbolTable.closeCurrentScope();}
+                | IF LPAREN BOOLEXP STARTSCOPE RPAREN Statement ELSE        {symbolTable.closeCurrentScope();} STARTSCOPE Statement {symbolTable.closeCurrentScope();}
+                | WHILE LPAREN BOOLEXP RPAREN                               {symbolTable.openLoopScope();} 
+                                                                            Statement {symbolTable.closeCurrentScope();}
+                | BREAK SC                                                  {symbolTable.triggerBreak(); output::printProductionRule(24);}
+                | CONTINUE SC                                               {symbolTable.triggerContinue(); output::printProductionRule(25);}
+                
 ;
-Call :          ID LPAREN ExpList RPAREN                                    {output::printProductionRule(27);}
-                | ID LPAREN RPAREN                                          {output::printProductionRule(28);}
+
+BOOLEXP:        Exp                                                         {if (castExp($1).type != Type(E_bool)) {output::errorMismatch(yylineno); exit(1);} $$ = $1;}
+
+STARTSCOPE:     /*epsilon*/                                                 {symbolTable.openNewScope();}
+
+Call :          ID LPAREN ExpList RPAREN                                    {$$ = new Expression(symbolTable.callFunc(castID($1), castExpList($3))) ;delete $1; delete $3; output::printProductionRule(27);}
+                | ID LPAREN RPAREN                                          {$$ = new Expression(symbolTable.callFunc(castID($1), ExpList())) ;delete $1; output::printProductionRule(28);}
 ;
-ExpList:        Exp                                                         {output::printProductionRule(29);}
-                | Exp COMMA ExpList                                         {output::printProductionRule(30);}
+ExpList:        Exp                                                         {$$ = new ExpList(); castExpList($$).insert(castExp($1)); output::printProductionRule(29);}
+                | Exp COMMA ExpList                                         {$$ = $3; castExpList($$).insert(castExp($1)); output::printProductionRule(30);}
 ;
-Type :          INT                                                         {output::printProductionRule(31);}
-                | BYTE                                                      {output::printProductionRule(32);}
-                | BOOL                                                      {output::printProductionRule(33);}
+Type :          INT                                                         {$$ = new Type(E_int) ;output::printProductionRule(31);}
+                | BYTE                                                      {$$ = new Type(E_byte) ;output::printProductionRule(32);}
+                | BOOL                                                      {$$ = new Type(E_bool) ;output::printProductionRule(33);}
 ;
-Exp:            LPAREN Exp RPAREN                                           {output::printProductionRule(34);}
-                | Exp BINOP_MULTIPLY Exp                                    {output::printProductionRule(35);}
-                | Exp BINOP_ADDATIVE Exp                                    {output::printProductionRule(35);}
-                | ID                                                        {output::printProductionRule(36);}
-                | Call                                                      {output::printProductionRule(37);}
-                | NUM                                                       {output::printProductionRule(38);}
-                | NUM B                                                     {output::printProductionRule(39);}
-                | STRING                                                    {output::printProductionRule(40);}
-                | TRUE                                                      {output::printProductionRule(41);}
-                | FALSE                                                     {output::printProductionRule(42);}
-                | NOT Exp                                                   {output::printProductionRule(43);}
-                | Exp AND Exp                                               {output::printProductionRule(44);}
-                | Exp OR Exp                                                {output::printProductionRule(45);}
-                | Exp RELOP Exp                                             {output::printProductionRule(46);}		
-                | LPAREN Type RPAREN Exp                                    {output::printProductionRule(47);}
+Exp:            LPAREN Exp RPAREN                                           {$$ = $2 ; output::printProductionRule(34);}
+                | Exp BINOP_MULTIPLY Exp                                          {
+                                                                                if(!castExp($1).isNumerical() || !castExp($3).isNumerical()){
+                                                                                        output::errorMismatch(yylineno);
+                                                                                        exit(12);
+                                                                                    };
+                                                                                $$ = new Expression(Type(castExp($1).getDualType(castExp($3))));delete $1; delete $3; output::printProductionRule(35);}
+                | Exp BINOP_ADDATIVE Exp                                          {
+                                                                                if(!castExp($1).isNumerical() || !castExp($3).isNumerical()){
+                                                                                    output::errorMismatch(yylineno);
+                                                                                    exit(12);
+                                                                                };
+                                                                                $$ = new Expression(Type(castExp($1).getDualType(castExp($3)))) ;delete $1; delete $3;output::printProductionRule(35);}
+                | ID                                                        {$$ = new Expression(symbolTable.getExpByID(castID($1))) ; output::printProductionRule(36);}
+                | Call                                                      {$$ = $1 ; output::printProductionRule(37);}
+                | NUM                                                       {$$ = new Expression(Type(E_int)); output::printProductionRule(38);}
+                | NUM B                                                     {if(castNum($1).num > 255) {output::errorByteTooLarge(yylineno, std::to_string(castNum($1).num)); exit(1); } ; $$ = new Expression(Type(E_byte)); output::printProductionRule(39);}
+                | STRING                                                    {$$ = new Expression(Type(E_string)); ; output::printProductionRule(40);}
+                | TRUE                                                      {$$ = new Expression(Type(E_bool)); output::printProductionRule(41);}
+                | FALSE                                                     {$$ = new Expression(Type(E_bool)); output::printProductionRule(42);}
+                | Exp AND Exp                                               {if (castExp($1).type != Type(E_bool) || castExp($3).type != Type(E_bool)) {output::errorMismatch(yylineno); exit(1);} ; $$ = new Expression(Type(E_bool)); delete $1; delete $3;output::printProductionRule(44);}
+                | Exp OR Exp                                                {if (castExp($1).type != Type(E_bool) || castExp($3).type != Type(E_bool)) {output::errorMismatch(yylineno); exit(1);} ; $$ = new Expression(Type(E_bool));delete $1; delete $3; output::printProductionRule(45);}
+                | NOT Exp                                                   {if (castExp($2).type != Type(E_bool)) {output::errorMismatch(yylineno); exit(1);} ;$$ = new Expression(Type(E_bool));delete $2; output::printProductionRule(43);}
+                | Exp EQUALITY Exp                                          {
+                                                                                    if(!castExp($1).isNumerical() || !castExp($3).isNumerical()){
+                                                                                        output::errorMismatch(yylineno);
+                                                                                        exit(12);
+                                                                                    }
+                                                                                    $$ = new Expression(Type(E_bool));
+                                                                                    delete $1;
+                                                                                    delete $3;
+                                                                            }
+                | Exp RELOP Exp                                             {
+                                                                                if(!castExp($1).isNumerical() || !castExp($3).isNumerical()){
+                                                                                    output::errorMismatch(yylineno);
+                                                                                    exit(12);
+                                                                                }
+                                                                                $$ = new Expression(Type(E_bool));
+                                                                                delete $1;
+                                                                                delete $3;
+                                                                            };
+
+
+
+				| LPAREN Type RPAREN Exp                                    {	 
+                                                                            if(!(castExp($2).isString() && castExp($4).isString()))
+                                                                                    {
+																					    if(!castExp($2).isNumerical() || !castExp($4).isNumerical()){
+																					    	output::errorMismatch(yylineno);
+                                                                                            exit(1);
+																					    }   
+                                                                                    }
+                                                                                    $$ = new Expression(castType($2));
+                                                                                    delete $2;
+                                                                                    delete $4;
+											
+																					output::printProductionRule(47);}															
+																			
 ;
 
 %%
 
-void yyerror(const char*){
-
+void yyerror(const char* e){
     output::errorSyn(yylineno);
+    output::printLog("error");
     exit(0);
 }
 
+int main(){
 
-int main()
-{
-    init();
-    printLog("Start");
-    int result = yyparse();
-    SymbolTable.gg();
-    printLog("End");
-    close();
-    return result;
+    output::init();
+    output::printLog("Start");
+    int res = yyparse();
+    symbolTable.gg();
+
+    output::printLog("End");
+    output::close();
+
+    return res;
 }
