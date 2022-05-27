@@ -99,8 +99,11 @@ Statement:      LBRACE {symbolTable.openNewScope(); }
 
 				| AUTO ID ASSIGN Exp SC                                     
                 {
+                    output::printLog("AUTO ENTERED@@@@@@@@@@@@@")
                     symbolTable.addSymbol(castExp($4).t, castID($2)); 
                     symbolTable.assign(castID($2), castExp($4)); 
+                    delete $2;
+                    delete $4;
                     output::printProductionRule(17);
                 }
 
@@ -112,9 +115,10 @@ Statement:      LBRACE {symbolTable.openNewScope(); }
                 | Call SC                                                   {output::printProductionRule(19);}
                 | RETURN SC                                                 {symbolTable.checkReturnType() ; output::printProductionRule(20);}
                 | RETURN Exp SC                                             {symbolTable.checkReturnType(castExp($2)) ; output::printProductionRule(21);}
-                | IF LPAREN BOOLEXP STARTSCOPE RPAREN Statement {symbolTable.closeCurrentScope();}
-                | IF LPAREN BOOLEXP STARTSCOPE RPAREN Statement ELSE {symbolTable.closeCurrentScope();} STARTSCOPE Statement {symbolTable.closeCurrentScope();}
-                | WHILE LPAREN BOOLEXP RPAREN {symbolTable.openLoopScope();} Statement {symbolTable.closeCurrentScope();}
+                | IF LPAREN BOOLEXP STARTSCOPE RPAREN Statement             {symbolTable.closeCurrentScope();}
+                | IF LPAREN BOOLEXP STARTSCOPE RPAREN Statement ELSE        {symbolTable.closeCurrentScope();} STARTSCOPE Statement {symbolTable.closeCurrentScope();}
+                | WHILE LPAREN BOOLEXP RPAREN                               {symbolTable.openLoopScope();} 
+                                                                            Statement {symbolTable.closeCurrentScope();}
                 | BREAK SC                                                  {symbolTable.triggerBreak(); output::printProductionRule(24);}
                 | CONTINUE SC                                               {symbolTable.triggerContinue(); output::printProductionRule(25);}
                 
@@ -175,12 +179,17 @@ Exp:            LPAREN Exp RPAREN                                           {$$ 
                                                                                 delete $1;
                                                                                 delete $3;
                                                                             };
-				| LPAREN Type RPAREN Exp                                    {	 if(!(castExp($2).isString() && castExp($4).isString())){
-																					if(!castExp($2).isNumerical() || !castExp($4).isNumerical()){
-																						output::errorMismatch(yylineno);
-                                                                                        exit(12);
-																					}   
-                                                                                }
+
+
+
+				| LPAREN Type RPAREN Exp                                    {	 
+                                                                            if(!(castExp($2).isString() && castExp($4).isString()))
+                                                                                    {
+																					    if(!castExp($2).isNumerical() || !castExp($4).isNumerical()){
+																					    	output::errorMismatch(yylineno);
+                                                                                            exit(1);
+																					    }   
+                                                                                    }
                                                                                     $$ = new Exp_t(castType($2));
                                                                                     delete $2;
                                                                                     delete $4;
@@ -194,7 +203,7 @@ Exp:            LPAREN Exp RPAREN                                           {$$ 
 void yyerror(const char* e){
     output::errorSyn(yylineno);
     output::printLog("error");
-    exit(-1);
+    exit(0);
 }
 
 int main(){

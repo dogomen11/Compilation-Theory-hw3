@@ -65,14 +65,16 @@ public:
         openNewScope(LOOP_SCOPE);
     }
     
-    void openFuncScope(IDtype id, SymList args, Type retType) {
+    void openFuncScope(IDtype id, SymList args, Type retType) 
+    {
         reverse(args.symList.begin(),args.symList.end());
         output::printLog("Flag " + id.id);
         if ((retType == E_void) && (id.id == "main") && args.symList.empty()){
             seenMainFunc = true;
         }
 
-        if (findFunc(id) != funcList.funcList.end()){
+        if (findFunc(id) != funcList.funcList.end())
+        {
             output::errorDef(yylineno, id.id);
             exit(1);
         }
@@ -100,10 +102,6 @@ public:
         scopeList.emplace_back(offsets.top(), FUNC_SCOPE);
     }
 
-    // triggers
-    void triggerCase(){
-        cases++ ;
-    }
     void triggerBreak(){
         for(ScopeList::iterator i = scopeList.begin(); i != scopeList.end(); i++){
             if ((*i).type == LOOP_SCOPE ){ 
