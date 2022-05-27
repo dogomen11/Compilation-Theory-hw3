@@ -224,13 +224,25 @@ public:
         }
     }
 
+    void checkAutoValid(Type t)
+    {
+        if(t.getStr() != "BOOL" && t.getStr() != "INT" && t.getStr() != "BYTE")
+		{
+			output::errorMismatch(yylineno);
+			exit(1);
+		}
+    }
+
     void checkReturnType(){
         if(funcList.funcList.back().retType != E_void){
             output::errorMismatch(yylineno);
             exit(1);
         }
     }
-    void addSymbol(Type t, IDtype id){
+
+    void addSymbol(Type t, IDtype id)
+    {
+        checkAutoValid(t);
         if(isId(id)) {
             output::errorDef(yylineno, id.id);
             exit(-1);
