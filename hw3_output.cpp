@@ -1,7 +1,6 @@
 #include "hw3_output.hpp"
 #include <iostream>
-#include <sstream>
-#include <fstream>
+
 
 using namespace std;
 ofstream* log_file;

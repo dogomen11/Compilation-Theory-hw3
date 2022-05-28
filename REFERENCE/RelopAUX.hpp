@@ -23,20 +23,6 @@ public:
             op = E_GOE;
         }
     };
-
-    bool compare(Exp_t a, Exp_t b){
-        /*switch (op){
-            case E_G:
-                return a < b;
-            case E_L:
-                return b < a;
-            case E_GOE:
-                return a <= b;
-            case E_LOE:
-                return b <= a;
-        }*/
-        return true;
-    }
 };
 
 #endif //HW3_RELOPAUX_HPP

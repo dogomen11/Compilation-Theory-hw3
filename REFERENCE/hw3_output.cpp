@@ -6,6 +6,20 @@
 using namespace std;
 ofstream* logFile;
 
+void output::init() {
+    logFile = new ofstream();
+    logFile->open("log.txt");
+}
+
+void output::close() {
+    logFile->close();
+    delete logFile;
+}
+
+void output::printLog(const string s) {
+    *logFile << s << endl;
+}
+
 void output::endScope(){
     cout << "---end scope---" << endl;
 }
@@ -97,16 +111,4 @@ void output::printInt(int i){
     cout << "printInt " << i << endl;
 }
 
-void output::init() {
-    logFile = new ofstream();
-    logFile->open("log.txt");
-}
 
-void output::close() {
-    logFile->close();
-    delete logFile;
-}
-
-void output::printLog(const string s) {
-    *logFile << s << endl;
-}

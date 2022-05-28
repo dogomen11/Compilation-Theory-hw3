@@ -22,6 +22,7 @@ namespace output{
     */
     string makeFunctionType(const string& retType, vector<string>& argTypes);
 
+
     void errorLex(int lineno);
     void errorSyn(int lineno);
     void errorUndef(int lineno, const string& id);
