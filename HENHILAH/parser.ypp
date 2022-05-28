@@ -219,10 +219,6 @@ Statement	:	LBRACE M Statements RBRACE
 						exit(1);
 					}
 				}
-
-
-
-
 			|	AUTO ID ASSIGN Exp SC
 				{
 					string id_name = ((myVariable*)$2)->var;
@@ -240,11 +236,6 @@ Statement	:	LBRACE M Statements RBRACE
 						exit(1);
 					}
 				}
-
-
-
-
-				
 			|	ID ASSIGN Exp SC
 				{
 					string id_name = ((myVariable*)$1)->var;

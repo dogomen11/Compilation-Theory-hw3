@@ -258,6 +258,7 @@ public:
         }
         return sym->t;
     }
+
     Exp_t getExpByID(IDtype _id){
         output::printLog("getExp id:" + _id.id);
         Exp_t tmp = Exp_t(getTypeByID(_id));
@@ -265,7 +266,9 @@ public:
 
         return Exp_t(getTypeByID(_id));
     }
-    void assign(IDtype _id, Exp_t e){
+
+    void assign(IDtype _id, Exp_t e)
+    {
         Symbol* sym = findSym(_id);
         if(!sym){
             output::errorUndef(yylineno, _id.id);

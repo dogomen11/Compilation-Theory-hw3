@@ -6,13 +6,13 @@
     #include "Exp_t.hpp"
     #include "Table.hpp"
     #include "BaseObj.hpp"
-    #define castType(toCast) (*(static_cast<Type*>(toCast)))
-    #define castID(toCast) (*(static_cast<IDtype*>(toCast)))
+    #define castType(toCast)    (*(static_cast<Type*>(toCast)))
+    #define castID(toCast)      (*(static_cast<IDtype*>(toCast)))
     #define castSymList(toCast) (*(static_cast<SymList*>(toCast)))
-    #define castSymbol(toCast) (*(static_cast<Symbol*>(toCast)))
-    #define castExp(toCast) (*(static_cast<Exp_t*>(toCast)))
+    #define castSymbol(toCast)  (*(static_cast<Symbol*>(toCast)))
+    #define castExp(toCast)     (*(static_cast<Exp_t*>(toCast)))
     #define castExpList(toCast) (*(static_cast<ExpList*>(toCast)))
-    #define castNum(toCast) (*(static_cast<Num*>(toCast)))
+    #define castNum(toCast)     (*(static_cast<Num*>(toCast)))
     
 
     int yylex();
@@ -41,7 +41,7 @@
 %token CONTINUE
 %token SC
 %token COMMA
-%token LPAREN
+%left LPAREN
 %token LBRACE
 %token RBRACE
 %token ID
@@ -99,8 +99,9 @@ Statement:      LBRACE {symbolTable.openNewScope(); }
 
 				| AUTO ID ASSIGN Exp SC                                     
                 {
+                    symbolTable.checkAutoValid(castExp($4).t);
                     symbolTable.addSymbol(castExp($4).t, castID($2)); 
-                    symbolTable.assign(castID($2), castExp($4)); 
+ 
                     delete $2;
                     delete $4;
                     output::printProductionRule(17);
@@ -110,7 +111,13 @@ Statement:      LBRACE {symbolTable.openNewScope(); }
 
 
 
-                | ID ASSIGN Exp SC                                          {symbolTable.getExpByID(castID($1)) = castExp($3) ; output::printProductionRule(18);}
+                | ID ASSIGN Exp SC                                          
+                {
+                    symbolTable.getExpByID(castID($1)) = castExp($3); 
+                    output::printProductionRule(18);
+                }
+
+
                 | Call SC                                                   {output::printProductionRule(19);}
                 | RETURN SC                                                 {symbolTable.checkReturnType() ; output::printProductionRule(20);}
                 | RETURN Exp SC                                             {symbolTable.checkReturnType(castExp($2)) ; output::printProductionRule(21);}
@@ -181,19 +188,17 @@ Exp:            LPAREN Exp RPAREN                                           {$$ 
 
 
 
-				| LPAREN Type RPAREN Exp                                    {	 
-                                                                            if(!(castExp($2).isString() && castExp($4).isString()))
-                                                                                    {
-																					    if(!castExp($2).isNumerical() || !castExp($4).isNumerical()){
-																					    	output::errorMismatch(yylineno);
-                                                                                            exit(1);
-																					    }   
-                                                                                    }
-                                                                                    $$ = new Exp_t(castType($2));
-                                                                                    delete $2;
-                                                                                    delete $4;
-											
-																					output::printProductionRule(47);}															
+				| LPAREN Type RPAREN Exp                                    
+                {	                                                       
+					if(!castExp($2).isNumerical() || !castExp($4).isNumerical())
+                    {
+						output::errorMismatch(yylineno);
+                        exit(1);
+					}   
+                    $$ = new Exp_t(((Type*)$2)->t);
+					delete $2;
+			        delete $4;
+                }															
 																			
 ;
 
