@@ -10,19 +10,21 @@ using namespace std;
 
 class BaseObj{
 public:
-    BaseObj() = default;
+    explicit BaseObj() = default;
+    virtual ~BaseObj() = default;
 };
 
 class IDtype : public BaseObj{
 public:
     string id;
-    IDtype(string _id) : id(_id) {};
+    explicit IDtype(string _id) : id(_id) {};
 };
 
-class Type: public BaseObj {
+class Type: public BaseObj 
+{
 public:
     TYPE t;
-    Type(TYPE t);
+    explicit Type(TYPE new_t) : t(new_t) {};
 
     string getStr() const;
 
@@ -30,13 +32,15 @@ public:
     bool operator==(const TYPE rhs) const;
     bool operator!=(const Type rhs) const;
     bool operator!=(const TYPE rhs) const;
+    void operator=(const TYPE new_type);
 };
+
 class Symbol : public BaseObj {
 public:
     IDtype id;
     Type t;
 
-    Symbol(const IDtype id, const Type t);
+    explicit Symbol(const IDtype id, const Type t);
 
     Symbol(const Symbol& _sym);
 };
@@ -44,8 +48,8 @@ public:
 class SymList : public BaseObj {
 public:
     vector<Symbol> symList;
+    explicit SymList();
     SymList(const vector<Symbol> &symList);
-    SymList();
 
     void insert(Symbol sym);
 
@@ -58,15 +62,15 @@ public:
     IDtype id;
     SymList symList;
 
-    FuncSymbol(Type _retType, IDtype _id, SymList _symList);
+    explicit FuncSymbol(Type _retType, IDtype _id, SymList _symList);
 };
 
 class FuncList : public BaseObj {
 public:
     vector<FuncSymbol> funcList;
 
+    explicit FuncList();
     FuncList(vector<FuncSymbol> & _funcList);
-    FuncList();
 
     void insert(FuncSymbol func);
 
@@ -76,7 +80,7 @@ public:
 class Num: public BaseObj{
 public:
     int val;
-    Num(int val);
+    explicit Num(int val);
 };
 
 #define YYSTYPE BaseObj*

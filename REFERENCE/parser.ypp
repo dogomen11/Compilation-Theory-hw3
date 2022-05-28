@@ -35,13 +35,12 @@
 %token TRUE
 %token FALSE
 %token RETURN
-%token IF
+%nonassoc IF
 %token WHILE
 %token BREAK
 %token CONTINUE
 %token SC
 %token COMMA
-%left LPAREN
 %token LBRACE
 %token RBRACE
 %token ID
@@ -52,10 +51,11 @@
 %left EQUALITY
 %left OR
 %left AND
-%nonassoc RELOP
+%left RELOP
 %left BINOP_ADDATIVE
 %left BINOP_MULTIPLY
 %right NOT
+%left LPAREN
 %left RPAREN
 %nonassoc ELSE
 
@@ -99,13 +99,19 @@ Statement:      LBRACE {symbolTable.openNewScope(); }
 
 				| AUTO ID ASSIGN Exp SC                                     
                 {
-                    symbolTable.checkAutoValid(castExp($4).t);
-                    symbolTable.addSymbol(castExp($4).t, castID($2)); 
- 
-                    delete $2;
-                    delete $4;
+					string id_name = castID($2).id;
+					string exp_type = castExp($4).t.getStr();
+					delete $2;
+					delete $4;
+					if (exp_type != "BOOL" && exp_type != "INT" && exp_type != "BYTE")
+					{
+                        symbolTable.debugIsLife2();
+						output::errorMismatch(yylineno);
+						exit(1);
+					}
+					symbolTable.addSymbol(castExp($4).t, castID($2));
                     output::printProductionRule(17);
-                }
+				}
 
 
 
@@ -140,9 +146,9 @@ Call :          ID LPAREN ExpList RPAREN                                    {$$ 
 ExpList:        Exp                                                         {$$ = new ExpList(); castExpList($$).insert(castExp($1)); output::printProductionRule(29);}
                 | Exp COMMA ExpList                                         {$$ = $3; castExpList($$).insert(castExp($1)); output::printProductionRule(30);}
 ;
-Type :          INT                                                         {$$ = new Type(E_int) ;output::printProductionRule(31);}
-                | BYTE                                                      {$$ = new Type(E_byte) ;output::printProductionRule(32);}
-                | BOOL                                                      {$$ = new Type(E_bool) ;output::printProductionRule(33);}
+Type :          INT                                                         {$$ = new Type(E_int);  output::printProductionRule(31);}
+                | BYTE                                                      {$$ = new Type(E_byte); output::printProductionRule(32);}
+                | BOOL                                                      {$$ = new Type(E_bool); output::printProductionRule(33);}
 ;
 Exp:            LPAREN Exp RPAREN                                           {$$ = $2 ; output::printProductionRule(34);}
                 | Exp BINOP_MULTIPLY Exp                                          {
@@ -189,15 +195,12 @@ Exp:            LPAREN Exp RPAREN                                           {$$ 
 
 
 				| LPAREN Type RPAREN Exp                                    
-                {	                                                       
-					if(!castExp($2).isNumerical() || !castExp($4).isNumerical())
-                    {
-						output::errorMismatch(yylineno);
-                        exit(1);
-					}   
-                    $$ = new Exp_t(((Type*)$2)->t);
+                {
+                    symbolTable.debugIsLife(castType($2), castExp($4).t);
+                    $$ = new Exp_t(castExp($2));
 					delete $2;
 			        delete $4;
+                    output::printProductionRule(47);
                 }															
 																			
 ;

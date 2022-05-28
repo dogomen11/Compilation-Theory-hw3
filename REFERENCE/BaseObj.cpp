@@ -1,6 +1,5 @@
 #include "BaseObj.hpp"
 
-Type::Type(TYPE t) : t(t) {}
 bool Type::operator==(const Type rhs) const {
     return t == rhs.t;
 }
@@ -12,6 +11,10 @@ bool Type::operator!=(const Type rhs) const {
 }
 bool Type::operator!=(const TYPE rhs) const {
     return !(*this == rhs);
+}
+void Type::operator=(const TYPE new_type)
+{
+    this->t = new_type;
 }
 string Type::getStr() const {
     return typeStr[(int)(t)];

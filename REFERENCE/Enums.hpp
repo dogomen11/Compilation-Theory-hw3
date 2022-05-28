@@ -6,21 +6,19 @@
 extern int yylineno;
 
 enum TYPE {
-    E_def,
-    E_bool,
-    E_byte,
+    E_void,
     E_int,
+    E_byte,
+    E_bool,
     E_string,
-    E_void
 };
 
 const std::string typeStr[] = {
-        "default",
-        "BOOL",
-        "BYTE",
+        "VOID",
         "INT",
+        "BYTE",
+        "BOOL",
         "STRING",
-        "VOID"
 };
 
 enum RELOP_ENUM{

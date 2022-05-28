@@ -10,12 +10,12 @@
 class Exp_t : public BaseObj{
 public:
     Type t;
-    Exp_t(): t(E_def) {};
     explicit Exp_t(Type t) : t(t) {};
-    Exp_t(Type t, int i) : t(t) {
+    Exp_t(Type t, int i) : t(t) 
+    {
         if ( t == E_byte && i >= (1 << 8)){
             output::errorByteTooLarge(yylineno, i);
-            exit(5456);
+            exit(1);
         }
     };
     Exp_t(const Exp_t& c) = default;
@@ -30,30 +30,29 @@ public:
 		return t == E_string;
 	}
 	
-    Type getDualType(const Exp_t& e) const {
+    Type getDualType(const Exp_t& e) const 
+    {
         if (t == E_byte && e.t == E_byte)
-            return E_byte;
+            return Type(E_byte);
 
-        return E_int;
+        return Type(E_int);
     }
-    bool castType(Type newT){
+
+    bool castType(Type newT)
+    {
         if(newT == E_void || t == E_void){
             output::errorMismatch(yylineno);
             output::printLog("Casting void");
             exit(1);
         }
-        if (newT == E_int && t == E_byte){
+        if (newT == E_int && t == E_byte)
+        {
             t = E_int;
             return true;
         }
         if (t == newT){
             return true;
         };
-        if (t == E_def){
-            t = newT;
-            return true;
-        }
-
         return false;
     }
 

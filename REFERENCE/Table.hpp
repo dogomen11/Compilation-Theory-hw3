@@ -222,10 +222,22 @@ public:
         }
     }
 
+
+    void debugIsLife(Type t1, Type t2)
+    {
+        std::cout << " type 1 is   " << t1.getStr() << "  type 2 is   " << t2.getStr() << endl;
+    }
+
+    void debugIsLife2()
+    {
+        std::cout << "PASSED AUTO MISMATCH " << endl;
+    }
+
     void checkAutoValid(Type t)
     {
-        if(t.getStr() != "BOOL" && t.getStr() != "INT" && t.getStr() != "BYTE")
+        if (!( t == E_bool || t == E_int || t == E_byte))
 		{
+            std::cout << "DEBUGGGGG" << endl;
 			output::errorMismatch(yylineno);
 			exit(1);
 		}
@@ -240,8 +252,8 @@ public:
 
     void addSymbol(Type t, IDtype id)
     {
-        checkAutoValid(t);
-        if(isId(id)) {
+        if(isId(id)) 
+        {
             output::errorDef(yylineno, id.id);
             exit(-1);
         }
