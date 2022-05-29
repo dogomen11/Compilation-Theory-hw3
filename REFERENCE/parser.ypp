@@ -6,7 +6,7 @@
     #include "Exp_t.hpp"
     #include "Table.hpp"
     #include "BaseObj.hpp"
-    #define castType(toCast)    (*(static_cast<Type*>(toCast)))
+    #define castingType(toCast)    (*(static_cast<Type*>(toCast)))
     #define castID(toCast)      (*(static_cast<IDtype*>(toCast)))
     #define castSymList(toCast) (*(static_cast<SymList*>(toCast)))
     #define castSymbol(toCast)  (*(static_cast<Symbol*>(toCast)))
@@ -67,7 +67,7 @@ Funcs:          /*epsilon*/                                                 {out
                 | FuncDecl Funcs                                            {output::printProductionRule(3);}
 ;
 FuncDecl:       RetType ID LPAREN Formals RPAREN LBRACE
-                                    {symbolTable.openFuncScope(castID($2), castSymList($4), castType($1));}
+                                    {symbolTable.openFuncScope(castID($2), castSymList($4), castingType($1));}
                                     Statements
                                     {output::printLog("Start: Close func scope") ; symbolTable.closeCurrentScope(); output::printLog("Done: Close func scope") ;}
                                     RBRACE                                  {output::printProductionRule(4);}
@@ -81,7 +81,7 @@ Formals:        /*epsilon*/                                                 {$$ 
 FormalsList:    FormalDecl                                                  {output::printProductionRule(9); $$ = new SymList() ; castSymList($$).insert(castSymbol($1));}
                 |FormalDecl COMMA FormalsList                               {output::printProductionRule(10); $$ = $3 ; castSymList($$).insert(castSymbol($1)); }
 ;
-FormalDecl:     Type ID                                                     {$$ = new Symbol(castID($2), castType($1)) ; delete $1; delete $2;output::printProductionRule(11);}
+FormalDecl:     Type ID                                                     {$$ = new Symbol(castID($2), castingType($1)) ; delete $1; delete $2;output::printProductionRule(11);}
 ;
 Statements:     Statement                                                   {output::printProductionRule(12);}
                 |Statements Statement                                       {output::printProductionRule(13);}
@@ -89,8 +89,8 @@ Statements:     Statement                                                   {out
 Statement:      LBRACE {symbolTable.openNewScope(); }
                         Statements
                         RBRACE {symbolTable.closeCurrentScope();}           {output::printProductionRule(14);}
-                | Type ID SC                                                {symbolTable.addSymbol(castType($1), castID($2)) ; output::printProductionRule(15);}
-                | Type ID ASSIGN Exp SC                                     {symbolTable.addSymbol(castType($1), castID($2)); symbolTable.assign(castID($2), castExp($4)); output::printProductionRule(16);}
+                | Type ID SC                                                {symbolTable.addSymbol(castingType($1), castID($2)) ; output::printProductionRule(15);}
+                | Type ID ASSIGN Exp SC                                     {symbolTable.addSymbol(castingType($1), castID($2)); symbolTable.assign(castID($2), castExp($4)); output::printProductionRule(16);}
 
 
 
@@ -105,7 +105,6 @@ Statement:      LBRACE {symbolTable.openNewScope(); }
 					delete $4;
 					if (exp_type != "BOOL" && exp_type != "INT" && exp_type != "BYTE")
 					{
-                        symbolTable.debugIsLife2();
 						output::errorMismatch(yylineno);
 						exit(1);
 					}
@@ -119,6 +118,7 @@ Statement:      LBRACE {symbolTable.openNewScope(); }
 
                 | ID ASSIGN Exp SC                                          
                 {
+                    symbolTable.checkIfAssignIsGood(castID($1),castExp($3));
                     symbolTable.getExpByID(castID($1)) = castExp($3); 
                     output::printProductionRule(18);
                 }
@@ -196,9 +196,10 @@ Exp:            LPAREN Exp RPAREN                                           {$$ 
 
 				| LPAREN Type RPAREN Exp                                    
                 {
-                    $$ = new Exp_t(castType($4));
-			        delete $2;
-			        delete $4;
+                    castExp($4).castType(castingType($2));
+                    $$ = $4;
+					delete $2;
+			        
                     output::printProductionRule(47);
                 }															
 																			

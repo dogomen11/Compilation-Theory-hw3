@@ -223,26 +223,11 @@ public:
     }
 
 
-    void debugIsLife(Type t1, Type t2)
-    {
-        std::cout << " type 1 is   " << t1.getStr() << "  type 2 is   " << t2.getStr() << endl;
-    }
-
-    void debugIsLife2()
-    {
-        std::cout << "PASSED AUTO MISMATCH " << endl;
-    }
-
-    void debugIsLife3()
-    {
-        std::cout << "PASSED AUTO MISMATCH " << endl;
-    }
 
     void checkAutoValid(Type t)
     {
         if (!( t == E_bool || t == E_int || t == E_byte))
 		{
-            std::cout << "DEBUGGGGG" << endl;
 			output::errorMismatch(yylineno);
 			exit(1);
 		}
@@ -276,6 +261,15 @@ public:
         return sym->t;
     }
 
+    bool checkIfAssignIsGood(IDtype id1, Exp_t id2)
+    {
+        if ( (getTypeByID(id1)==E_byte) && (id2.t==E_int) )
+        {
+            output::errorMismatch(yylineno);
+            exit(1);
+        }
+    }
+
     Exp_t getExpByID(IDtype _id){
         output::printLog("getExp id:" + _id.id);
         Exp_t tmp = Exp_t(getTypeByID(_id));
@@ -290,6 +284,11 @@ public:
         if(!sym){
             output::errorUndef(yylineno, _id.id);
             exit(-463);
+        }
+        if (sym->t == E_byte && e.t == E_int)
+        {
+            output::errorMismatch(yylineno);
+            exit(1);
         }
         Exp_t newE = Exp_t(sym->t);
         newE = e;
