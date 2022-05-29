@@ -196,9 +196,8 @@ Exp:            LPAREN Exp RPAREN                                           {$$ 
 
 				| LPAREN Type RPAREN Exp                                    
                 {
-                    symbolTable.debugIsLife(castType($2), castExp($4).t);
-                    $$ = new Exp_t(castExp($2));
-					delete $2;
+                    $$ = new Exp_t(castType($4));
+			        delete $2;
 			        delete $4;
                     output::printProductionRule(47);
                 }															

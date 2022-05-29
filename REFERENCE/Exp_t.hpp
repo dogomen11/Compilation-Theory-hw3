@@ -41,6 +41,7 @@ public:
     bool castType(Type newT)
     {
         if(newT == E_void || t == E_void){
+            //std::cout << "castType func " << endl;
             output::errorMismatch(yylineno);
             output::printLog("Casting void");
             exit(1);
@@ -48,6 +49,11 @@ public:
         if (newT == E_int && t == E_byte)
         {
             t = E_int;
+            return true;
+        }
+        if (newT == E_byte && t == E_int)
+        {
+            t = E_byte;
             return true;
         }
         if (t == newT){
@@ -58,6 +64,7 @@ public:
 
     Exp_t& operator=(const Exp_t& e){
         if (!Exp_t(e).castType(t)){
+            //std::cout << "operator = func " << endl;
             output::errorMismatch(yylineno);
             output::printLog("Flag casting from " + e.t.getStr() + " to " + t.getStr());
             exit(-1);

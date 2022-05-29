@@ -233,6 +233,11 @@ public:
         std::cout << "PASSED AUTO MISMATCH " << endl;
     }
 
+    void debugIsLife3()
+    {
+        std::cout << "PASSED AUTO MISMATCH " << endl;
+    }
+
     void checkAutoValid(Type t)
     {
         if (!( t == E_bool || t == E_int || t == E_byte))
