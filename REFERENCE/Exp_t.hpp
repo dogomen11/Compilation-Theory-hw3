@@ -65,7 +65,7 @@ public:
         if (!Exp_t(e).castType(t)){
             output::errorMismatch(yylineno);
             output::printLog("Flag casting from " + e.t.getStr() + " to " + t.getStr());
-            exit(-1);
+            exit(1);
         }
         return (*this);
     };

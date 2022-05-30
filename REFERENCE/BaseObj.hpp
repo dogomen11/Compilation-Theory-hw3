@@ -17,7 +17,8 @@ public:
 class IDtype : public BaseObj{
 public:
     string id;
-    explicit IDtype(string _id) : id(_id) {};
+    int line_to_fix;
+    explicit IDtype(string _id, int line_to_fix = 0) : id(_id) {};
 };
 
 class Type: public BaseObj 

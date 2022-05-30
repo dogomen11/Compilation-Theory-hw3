@@ -47,11 +47,10 @@ continue                        return CONTINUE;
 \{                              return LBRACE;
 \}                              return RBRACE;
 =                               return ASSIGN;
-"<"|">"|"<="|">="               {return RELOP;}
-"=="|"!="                       return EQUALITY;
+(==|!=|<=|>=|<|>)               {return RELOP;}
 "*"|"/"                         {return BINOP_MULTIPLY;}
 "+"|"-"                         {return BINOP_ADDATIVE;}
-[a-zA-Z][a-zA-Z0-9]*            {yylval = new IDtype(string(yytext));  return ID;}
+[a-zA-Z][a-zA-Z0-9]*            {yylval = new IDtype(string(yytext), yylineno);  return ID;}
 {noZeroDigit}{digit}*           {yylval = new Num(stoi(yytext)); return NUM;}
 0                               {yylval = new Num(0); return NUM;}
 \"([^\n\r\"\\]|\\[rnt"\\])+\"   {return STRING;}

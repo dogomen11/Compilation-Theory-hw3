@@ -56,10 +56,10 @@ public:
 
     // open scopes
     void openNewScope(SCOPE_REASON type = REGULAR_SCOPE){
-        output::printLog("Start openNewScope | size " + to_string(scopeList.size()));
+        //output::printLog("Start openNewScope | size " + to_string(scopeList.size()));
         scopeList.emplace_back(offsets.top(), type);
         offsets.push(offsets.top());
-        output::printLog("End openNewScope | size " + to_string(scopeList.size()));
+        //output::printLog("End openNewScope | size " + to_string(scopeList.size()));
     }
     void openLoopScope(){
         openNewScope(LOOP_SCOPE);
@@ -68,31 +68,37 @@ public:
     void openFuncScope(IDtype id, SymList args, Type retType) 
     {
         reverse(args.symList.begin(),args.symList.end());
-        output::printLog("Flag " + id.id);
-        if ((retType == E_void) && (id.id == "main") && args.symList.empty()){
+        //output::printLog("Flag " + id.id);
+        if ((retType == E_void) && (id.id == "main") && args.symList.empty())
+        {
             seenMainFunc = true;
         }
 
         if (findFunc(id) != funcList.funcList.end())
         {
+            output::printLog("PROBLEMMZZZ");
             output::errorDef(yylineno, id.id);
             exit(1);
         }
 
         funcList.insert(FuncSymbol(retType, id, args));
-        for(SymList::iterator sym = args.symList.begin(); sym != args.symList.end(); sym++){
-            if(findFunc((*sym).id) != funcList.funcList.end()){
+        for(SymList::iterator sym = args.symList.begin(); sym != args.symList.end(); sym++)
+        {
+            if(findFunc((*sym).id) != funcList.funcList.end())
+            {
                 output::printLog("isId:" + (*sym).id.id);
                 output::errorDef(yylineno, (*sym).id.id);
-                exit(444);
+                exit(1);
             }
-            for(SymList::iterator sym2 = sym; sym2 != args.symList.end(); sym2++){
+            for(SymList::iterator sym2 = sym; sym2 != args.symList.end(); sym2++)
+            {
                 if (sym == sym2)
                     continue;
-                if ((*sym).id.id == (*sym2).id.id){
+                if ((*sym).id.id == (*sym2).id.id)
+                {
                     output::printLog("isId2:" + (*sym).id.id);
                     output::errorDef(yylineno, (*sym).id.id);
-                    exit(444);
+                    exit(1);
                 }
             }
         }
@@ -125,7 +131,7 @@ public:
     }
 
     Type callFunc(IDtype funcName, ExpList arguments) {
-        output::printLog("callFunc: start");
+        //output::printLog("callFunc: start");
 
         if(findFunc(funcName) == funcList.funcList.end()){
             output::errorUndefFunc(yylineno, funcName.id);
@@ -139,11 +145,11 @@ public:
 
         reverse(sArgs.symList.begin(),sArgs.symList.end());
 
-        output::printLog("callFunc: Flag 1");
+        //output::printLog("callFunc: Flag 1");
 
         FuncSymbol func = *findFunc(funcName);
-        output::printLog("func size: " + to_string(func.symList.symList.size()));
-        output::printLog("sArgs size: " + to_string(sArgs.symList.size()));
+        //output::printLog("func size: " + to_string(func.symList.symList.size()));
+        //output::printLog("sArgs size: " + to_string(sArgs.symList.size()));
 
         std::vector<string> strTypes = std::vector<string>();
         for (SymList::iterator i = func.symList.symList.begin(); i != func.symList.symList.end(); i++){
@@ -216,7 +222,9 @@ public:
     }
 
     void checkReturnType(Exp_t exp){
-        if(!exp.castType(funcList.funcList.back().retType)){
+        if(!exp.castType(funcList.funcList.back().retType))
+        {
+            output::printLog("Table 1");
             output::errorMismatch(yylineno);
             exit(1);
         }
@@ -228,13 +236,16 @@ public:
     {
         if (!( t == E_bool || t == E_int || t == E_byte))
 		{
+            output::printLog("Table 2");
 			output::errorMismatch(yylineno);
 			exit(1);
 		}
     }
 
     void checkReturnType(){
-        if(funcList.funcList.back().retType != E_void){
+        if(funcList.funcList.back().retType != E_void)
+        {
+            output::printLog("Table 3");
             output::errorMismatch(yylineno);
             exit(1);
         }
@@ -265,15 +276,16 @@ public:
     {
         if ( (getTypeByID(id1)==E_byte) && (id2.t==E_int) )
         {
+            output::printLog("Table 4");
             output::errorMismatch(yylineno);
             exit(1);
         }
     }
 
     Exp_t getExpByID(IDtype _id){
-        output::printLog("getExp id:" + _id.id);
+        //output::printLog("getExp id:" + _id.id);
         Exp_t tmp = Exp_t(getTypeByID(_id));
-        output::printLog("getExp res:" + tmp.t.getStr());
+        //output::printLog("getExp res:" + tmp.t.getStr());
 
         return Exp_t(getTypeByID(_id));
     }
@@ -287,6 +299,7 @@ public:
         }
         if (sym->t == E_byte && e.t == E_int)
         {
+            output::printLog("Table 5");
             output::errorMismatch(yylineno);
             exit(1);
         }

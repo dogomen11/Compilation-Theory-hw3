@@ -66,11 +66,20 @@ Program:        Funcs                                                       {out
 Funcs:          /*epsilon*/                                                 {output::printProductionRule(2);}
                 | FuncDecl Funcs                                            {output::printProductionRule(3);}
 ;
-FuncDecl:       RetType ID LPAREN Formals RPAREN LBRACE
-                                    {symbolTable.openFuncScope(castID($2), castSymList($4), castingType($1));}
-                                    Statements
-                                    {output::printLog("Start: Close func scope") ; symbolTable.closeCurrentScope(); output::printLog("Done: Close func scope") ;}
-                                    RBRACE                                  {output::printProductionRule(4);}
+FuncDecl:       RetType ID LPAREN Formals RPAREN
+                                    {
+                                        symbolTable.openFuncScope(castID($2), castSymList($4), castingType($1));
+                                    }
+                                    LBRACE Statements RBRACE
+                                    {
+                                        output::printLog("Start: Close func scope") ; 
+                                        symbolTable.closeCurrentScope(); 
+                                        output::printLog("Done: Close func scope") ;
+                                        }
+                                                                      
+                                    {
+                                        output::printProductionRule(4);
+                                    }
 ;
 RetType:        Type                                                        {$$ = $1; output::printProductionRule(5);}
                 | VOID                                                      {$$ = new Type(E_void); output::printProductionRule(6);}
@@ -105,6 +114,7 @@ Statement:      LBRACE {symbolTable.openNewScope(); }
 					delete $4;
 					if (exp_type != "BOOL" && exp_type != "INT" && exp_type != "BYTE")
 					{
+                        output::printLog("Parser 1");
 						output::errorMismatch(yylineno);
 						exit(1);
 					}
@@ -136,7 +146,7 @@ Statement:      LBRACE {symbolTable.openNewScope(); }
                 
 ;
 
-BOOLEXP:        Exp                                                         {if (castExp($1).t != Type(E_bool)) {output::errorMismatch(yylineno); exit(1);} $$ = $1;}
+BOOLEXP:        Exp                                                         {if (castExp($1).t != Type(E_bool)) {output::printLog("Parser 2");output::errorMismatch(yylineno); exit(1);} $$ = $1;}
 
 STARTSCOPE:     /*epsilon*/                                                 {symbolTable.openNewScope();}
 
@@ -153,12 +163,14 @@ Type :          INT                                                         {$$ 
 Exp:            LPAREN Exp RPAREN                                           {$$ = $2 ; output::printProductionRule(34);}
                 | Exp BINOP_MULTIPLY Exp                                          {
                                                                                 if(!castExp($1).isNumerical() || !castExp($3).isNumerical()){
+                                                                                    output::printLog("Parser 3");
                                                                                         output::errorMismatch(yylineno);
                                                                                         exit(12);
                                                                                     };
                                                                                 $$ = new Exp_t(Type(castExp($1).getDualType(castExp($3))));delete $1; delete $3; output::printProductionRule(35);}
                 | Exp BINOP_ADDATIVE Exp                                          {
                                                                                 if(!castExp($1).isNumerical() || !castExp($3).isNumerical()){
+                                                                                    output::printLog("Parser 4");
                                                                                     output::errorMismatch(yylineno);
                                                                                     exit(12);
                                                                                 };
@@ -170,27 +182,50 @@ Exp:            LPAREN Exp RPAREN                                           {$$ 
                 | STRING                                                    {$$ = new Exp_t(Type(E_string)); ; output::printProductionRule(40);}
                 | TRUE                                                      {$$ = new Exp_t(Type(E_bool)); output::printProductionRule(41);}
                 | FALSE                                                     {$$ = new Exp_t(Type(E_bool)); output::printProductionRule(42);}
-                | Exp AND Exp                                               {if (castExp($1).t != Type(E_bool) || castExp($3).t != Type(E_bool)) {output::errorMismatch(yylineno); exit(1);} ; $$ = new Exp_t(Type(E_bool)); delete $1; delete $3;output::printProductionRule(44);}
-                | Exp OR Exp                                                {if (castExp($1).t != Type(E_bool) || castExp($3).t != Type(E_bool)) {output::errorMismatch(yylineno); exit(1);} ; $$ = new Exp_t(Type(E_bool));delete $1; delete $3; output::printProductionRule(45);}
-                | NOT Exp                                                   {if (castExp($2).t != Type(E_bool)) {output::errorMismatch(yylineno); exit(1);} ;$$ = new Exp_t(Type(E_bool));delete $2; output::printProductionRule(43);}
-                | Exp EQUALITY Exp                                          {
-                                                                                    if(!castExp($1).isNumerical() || !castExp($3).isNumerical()){
-                                                                                        output::errorMismatch(yylineno);
-                                                                                        exit(12);
-                                                                                    }
-                                                                                    $$ = new Exp_t(Type(E_bool));
-                                                                                    delete $1;
-                                                                                    delete $3;
-                                                                            }
-                | Exp RELOP Exp                                             {
-                                                                                if(!castExp($1).isNumerical() || !castExp($3).isNumerical()){
-                                                                                    output::errorMismatch(yylineno);
-                                                                                    exit(12);
-                                                                                }
-                                                                                $$ = new Exp_t(Type(E_bool));
-                                                                                delete $1;
-                                                                                delete $3;
-                                                                            };
+                | Exp AND Exp                                               {if (castExp($1).t != Type(E_bool) || castExp($3).t != Type(E_bool)) {output::printLog("Parser 5"); output::errorMismatch(yylineno); exit(1);} ; $$ = new Exp_t(Type(E_bool)); delete $1; delete $3;output::printProductionRule(44);}
+                | Exp OR Exp                                                
+                {
+                    if (yylineno == 79)
+                        output::printLog("Parser 6" + castExp($1).t.getStr() + "  " + castExp($3).t.getStr()); 
+                    if (castExp($1).t != Type(E_bool) || castExp($3).t != Type(E_bool)) 
+                    {
+                        output::printLog("Parser 6" + castExp($1).t.getStr() + "  " + castExp($3).t.getStr()); 
+
+                        output::errorMismatch(yylineno); 
+                        exit(1);
+                    }  
+                    $$ = new Exp_t(Type(E_bool));
+                    delete $1; 
+                    delete $3; output::printProductionRule(45);
+                }
+                | NOT Exp                                                   {if (castExp($2).t != Type(E_bool)) {output::printLog("Parser 7"); output::errorMismatch(yylineno); exit(1);} ;$$ = new Exp_t(Type(E_bool));delete $2; output::printProductionRule(43);}
+                | Exp EQUALITY Exp                                          
+                {
+					output::printLog("Flag EQUALITY");
+                    if (yylineno == 79)
+                        output::printLog("Parser 8" + castExp($1).t.getStr() + "  " + castExp($3).t.getStr()); 
+                    if(!castExp($1).isNumerical() || !castExp($3).isNumerical())
+                    {
+                        output::printLog("Parser 8");
+                        output::errorMismatch(yylineno);
+                        exit(12);
+                    }
+                    $$ = new Exp_t(Type(E_bool));
+                    delete $1;
+                    delete $3;
+                }
+                | Exp RELOP Exp                                             
+                {
+                    if(!castExp($1).isNumerical() || !castExp($3).isNumerical())
+                    {
+                        output::printLog("Parser 9");
+                        output::errorMismatch(yylineno);
+                        exit(12);
+                    }
+                    $$ = new Exp_t(Type(E_bool));
+                    delete $1;
+                    delete $3;
+                };
 
 
 
@@ -209,7 +244,6 @@ Exp:            LPAREN Exp RPAREN                                           {$$ 
 
 void yyerror(const char* e){
     output::errorSyn(yylineno);
-    output::printLog("error");
     exit(0);
 }
 
